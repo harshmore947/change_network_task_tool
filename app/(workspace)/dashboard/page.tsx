@@ -19,22 +19,20 @@ import {
   CheckCircle,
   AlertCircle,
   Trash2,
+  Edit,
 } from "lucide-react";
 import { signOut, useSession, signIn } from "next-auth/react";
 import { CreateTaskDialog } from "@/components/ui/create-task-dialog";
-import {
-
-  deleteTask,
-  updateTask,
-  getAllTasksSimple,
-} from "@/action/task";
+import { EditTaskDialog } from "@/components/ui/edit-task-dialog";
+import { deleteTask, updateTask, getAllTasksSimple } from "@/action/task";
 
 export default function Page() {
   const { data: session, status } = useSession();
   const [isLoggingOut, setIsLoggingOut] = React.useState(false);
   const [tasks, setTasks] = React.useState<any[]>([]);
   const [isLoadingTasks, setIsLoadingTasks] = React.useState(false);
-
+  const [editingTask, setEditingTask] = React.useState<any>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
 
   // Fetch tasks - simple version
   const fetchTasks = React.useCallback(async () => {
@@ -117,6 +115,16 @@ export default function Page() {
       console.error("Update task error:", error);
       alert("An error occurred while updating the task");
     }
+  };
+
+  const handleEditTask = (task: any) => {
+    setEditingTask(task);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleCloseEditDialog = () => {
+    setIsEditDialogOpen(false);
+    setEditingTask(null);
   };
 
   // Show loading state while session is being fetched
@@ -339,6 +347,20 @@ export default function Page() {
 
                         {/* Task Actions */}
                         <div className="flex items-center gap-2">
+                          {/* Edit button - for creator or assignee */}
+                          {(isTaskCreatedByUser ||
+                            task.assignedTo?.email ===
+                              session?.user?.email) && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditTask(task)}
+                              className="text-gray-600 hover:text-gray-700"
+                            >
+                              <Edit className="w-3 h-3" />
+                            </Button>
+                          )}
+
                           {/* Status update buttons */}
                           {task.status !== "done" && (
                             <Button
@@ -397,6 +419,16 @@ export default function Page() {
           </div>
         </div>
       </main>
+
+      {/* Edit Task Dialog */}
+      {editingTask && (
+        <EditTaskDialog
+          task={editingTask}
+          isOpen={isEditDialogOpen}
+          onClose={handleCloseEditDialog}
+          onTaskUpdated={fetchTasks}
+        />
+      )}
     </div>
   );
 }
